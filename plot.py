@@ -59,7 +59,7 @@ def graph(ticker, start, end):
     # finding the maximum of the closing prices column, in dollars
     max_index = df['Close'].idxmax().date()
     # finding the date of the maximum closing price
-    # print('Maximum: ',max_index.date(), '$', max)
+    # print('Maximum: ', max_index.date(), '$', max)
     curr = round(df['Close'].iloc[-1], 2)
     # finding the most recent closing price (sepcified end date)
     # print('Current: ',end.date(), '$', curr)
