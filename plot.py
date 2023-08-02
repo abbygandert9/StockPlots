@@ -6,6 +6,8 @@ import matplotlib.pyplot as plt
 from datetime import date, timedelta
 import datetime as dt
 import yfinance as yf
+import sklearn
+from sklearn.preprocessing import StandardScaler
 
 tickers = ['VTI', 'VXUS', 'VBK', 'VNQ', 'VYM', 'SPYG', 'VUG']
 # desired stock tickers
@@ -23,7 +25,7 @@ end = dt.datetime.now()
 res = pd.DataFrame(data=tickData, index=tickers)
 
 
-def graph(ticker, start, end):
+def getData(ticker):
     data = yf.download(ticker, start=start, end=end, threads=False)
     # download all stock data from specified start date to end date
     df = pd.DataFrame(data, columns=['Close'])
@@ -32,24 +34,10 @@ def graph(ticker, start, end):
     # creating new line with a rolling 200 day average
     df['50d'] = df['Close'].rolling(50).mean()
     # creating new line with a rolling 50 day average
-    weeks = round(((end - start).days / 7))
-    # calculating number of weeks between start and end dates
+    return df
 
-    plt.title(str(weeks) + ' week ' + str(ticker) + ' prices')
-    plt.xlabel('Date')
-    plt.ylabel('Share Price ($)')
-    plt.plot(df['Close'], label="Prices")
-    plt.plot(df['200d'], label="200 day avg")
-    # plotting new 200 day average line
-    plt.plot(df['50d'], label="50 day avg")
-    # plotting new 50 day average line
-    plt.legend()
-    # plt.show()
-    # making plot visible
-    # print(df)
-    # printing the results of each of the three lines (closing prices, 200d avg, 50d avg
 
-    # printing ticker to label data
+def minmax(df, ticker):
     min = round(df['Close'].min(), 2)
     # finding the minimum of the closing prices column, in dollars
     min_index = df['Close'].idxmin().date()
@@ -61,20 +49,16 @@ def graph(ticker, start, end):
     # finding the date of the maximum closing price
     # print('Maximum: ', max_index.date(), '$', max)
     curr = round(df['Close'].iloc[-1], 2)
-    # finding the most recent closing price (sepcified end date)
+    # finding the most recent closing price (specified end date)
     # print('Current: ',end.date(), '$', curr)
 
-    pctData = percentile(max, min, curr, pct)
+    percentile(max, min, curr, pct, min_index, max_index, ticker)
     # call to percent method using new min, max, and curr calculations. Uses desired pct value
-    actual = pctData[2]
-    calc = pctData[1]
-    col_vars = [curr, min, min_index, max, max_index, actual, calc]
 
-    # sends parameter update method to overwrite dataframe
-    updateData(ticker, cols, col_vars)
+    return max, min, curr, pct, min_index, max_index
 
 
-def percentile(max, min, curr, pct):
+def percentile(max, min, curr, pct, min_index, max_index, ticker):
     # method that determines the percent increase over the price of the designated time frame
     # e.g. the NDAQ price on 7/25/23 is $51.06, which is only 10% above the 52 week low of $48.97
     calc = ((max - min) * (pct / 100)) + min
@@ -93,7 +77,11 @@ def percentile(max, min, curr, pct):
     # output current percentage above designated time period low
     #
     # print('\n',boo,'\n', b, '\n', c, '\n', a)
-    return boo, round(calc, 2), round(actual, 2)
+    col_vars = [curr, min, min_index, max, max_index, actual, calc]
+    updateData(ticker, cols, col_vars)
+    # sends parameter update method to overwrite dataframe
+    # return boo, round(calc, 2), round(actual, 2)
+    return col_vars
 
 
 def updateData(ticker, cols, col_vars):
@@ -103,9 +91,34 @@ def updateData(ticker, cols, col_vars):
     return res
 
 
-for ticker in tickers:
-    # for loop to iterate through each of the designated tickers in the list
-    graph(ticker, start, end)
-    # call to graph method to plot the graph
+def graph(df, ticker, start, end):
+    weeks = round(((end - start).days / 7))
+    # calculating number of weeks between start and end dates
+    plt.title(str(weeks) + ' week ' + str(ticker) + ' prices')
+    plt.xlabel('Date')
+    plt.ylabel('Share Price ($)')
+    plt.plot(df['Close'], label="Prices")
+    plt.plot(df['200d'], label="200 day avg")
+    # plotting new 200 day average line
+    plt.plot(df['50d'], label="50 day avg")
+    # plotting new 50 day average line
+    plt.legend()
+    # plt.show()
+    # making plot visible
+    # print(df)
+    # printing the results of each of the three lines (closing prices, 200d avg, 50d avg
 
+
+def calculate(tickers):
+    for ticker in tickers:
+        # for loop to iterate through each of the designated tickers in the list
+        pullData = getData(ticker)
+        # call to getData method to download from yfinance, set equal to new variable
+        minmax(pullData, ticker)
+        # call to nested calculation methods using pulled data, also updates the new 'res' dataframe
+        graph(pullData, ticker, start, end)
+        # call to graph method to plot the graph using pulled data
+
+
+calculate(tickers)
 print(res)
